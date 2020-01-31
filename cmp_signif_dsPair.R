@@ -9,6 +9,7 @@
 
 # Rscript cmp_signif_dsPair.R ENCSR489OCU_NCI-H460_40kb TCGAlusc_norm_lusc ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad 0.01
 # Rscript cmp_signif_dsPair.R ENCSR489OCU_NCI-H460_40kb TCGAluad_mutKRAS_mutEGFR ENCSR489OCU_NCI-H460_40kb TCGAluad_nonsmoker_smoker 0.01
+# Rscript cmp_signif_dsPair.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad ENCSR489OCU_NCI-H460_40kb TCGAlusc_norm_lusc 0.01
 
 require(VennDiagram)
 
@@ -50,6 +51,8 @@ if(length(args) == 0) {
   
 }
 
+# to compare the TADs -> they must have same hicds
+stopifnot(hicds1 == hicds2)
 
 inDT <- get(load("../v2_Yuanlong_Cancer_HiC_data_TAD_DA/GENE_RANK_TAD_RANK/all_gene_tad_signif_dt.Rdata"))
 inDT_check <- get(load("../v2_Yuanlong_Cancer_HiC_data_TAD_DA/CREATE_FINAL_TABLE/all_result_dt.Rdata"))
@@ -86,20 +89,45 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 ds1 <- paste0(hicds1, "-", exprds1)
 ds2 <- paste0(hicds2, "-", exprds2)
 
-save(merge_dt, file="merge_dt", version=2)
+myxlab <- paste0(exprds1)
+myylab <- paste0(exprds2)
+
+mysub <- paste0(hicds1)
+
+myx <- -log10(merge_dt$adjPvalComb_ds1)
+myy <- -log10(merge_dt$adjPvalComb_ds2)
 
 outFile <- file.path(outFolder, paste0(hicds1, "_", exprds1, "_vs_", hicds2, "_", exprds2, "_adjPvalComb_densplot.", "png"))
 do.call("png", list(outFile, height=400, width=400))
+
+par(bty="L", family=fontFamily)
+
 densplot(
-  x=-log10(merge_dt$adjPvalComb_ds1),
-  y=-log10(merge_dt$adjPvalComb_ds2),
-  xlab = paste0(ds1),
-  ylab = paste0(ds2),
+  x=myx,
+  y=myy,
+  xlab = myxlab,
+  ylab = myylab,
   main = paste0("TAD adj. comb. p-val. [log10]"),
   pch =16,
   cex.axis = plotCex,
-  cex.lab = plotCex
+  cex.lab = plotCex,
+  cex.main = plotCex
          )
+addCorr(x=myx,
+        y=myy,
+        legPos = "bottomright",
+        bty="n"
+        )
+mtext(side=3, text = paste0(mysub), cex=plotCex)
+legend("topleft",
+       legend=paste0("# common TADs = ", nrow(merge_dt)),
+       bty="n")
+abline(
+  lm(myy~myx),
+  lty=2,
+  col = "darkgrey"
+)
+
 foo <- dev.off()
 cat(paste0("... written: ", outFile, "\n"))
 
@@ -173,7 +201,7 @@ vd <- venn.diagram(
 ggsave(vd, file=outFile,height=myHeightGG, width=myWidthGG)
 cat(paste0("... written: ", outFile, "\n"))
 
-system(paste0("rm -f VennDiagram2019*.log"))
+system(paste0("rm -f VennDiagram2020*.log"))
 
 
 
