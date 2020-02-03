@@ -7,7 +7,6 @@
 # KRAS ~ smoker
 # EGFR ~ non smoker
 
-# Rscript cmp_signif_dsPair.R ENCSR489OCU_NCI-H460_40kb TCGAlusc_norm_lusc ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad 0.01
 # Rscript cmp_signif_dsPair.R ENCSR489OCU_NCI-H460_40kb TCGAluad_mutKRAS_mutEGFR ENCSR489OCU_NCI-H460_40kb TCGAluad_nonsmoker_smoker 0.01
 # Rscript cmp_signif_dsPair.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad ENCSR489OCU_NCI-H460_40kb TCGAlusc_norm_lusc 0.01
 
@@ -29,10 +28,10 @@ ggsci_subpal <- ""
 
 plotMargin <- c(1,2,1,1)
 
-hicds1 <- "LG1_40kb"
-exprds1 <- "TCGAlusc_norm_lusc"
-hicds2 <- "LG1_40kb"
-exprds2 <- "TCGAluad_norm_luad"
+hicds1 <- "ENCSR489OCU_NCI-H460_40kb"
+exprds1 <- "TCGAluad_norm_luad"
+hicds2 <- "ENCSR489OCU_NCI-H460_40kb"
+exprds2 <- "TCGAlusc_norm_lusc"
 tadPval_thresh <- 0.01
 
 args <- commandArgs(trailingOnly = TRUE)
@@ -97,6 +96,8 @@ mysub <- paste0(hicds1)
 myx <- -log10(merge_dt$adjPvalComb_ds1)
 myy <- -log10(merge_dt$adjPvalComb_ds2)
 
+# outFile <- file.path(outFolder, paste0(hicds1, "_", exprds1, "_vs_", hicds2, "_", exprds2, "_adjPvalComb_densplot.", plotType))
+# do.call(plotType, list(outFile, height=myHeight, width=myWidth))
 outFile <- file.path(outFolder, paste0(hicds1, "_", exprds1, "_vs_", hicds2, "_", exprds2, "_adjPvalComb_densplot.", "png"))
 do.call("png", list(outFile, height=400, width=400))
 
@@ -164,15 +165,19 @@ ds2 <- paste0(hicds2, "-", exprds2)
 myTit <- paste0("# signif. genes\nTAD p-val <= ", tadPval_thresh )
 myTit <- paste0("# signif. genes")
 mySub <- paste0(ds1, "\n", ds2)
-mySub <- paste0("TAD p-val <= ", tadPval_thresh )
+
+stopifnot(hicds1 == hicds2)
+
+mySub <- paste0(hicds1, "\nTAD p-val <= ", tadPval_thresh )
 
 
 vd <- venn.diagram(
   x = list(signif_ds1, signif_ds2),
   main = myTit,
   sub = mySub,
-  category.names = c(paste0("signif. ", gsub("-", "\n", ds1), "\n(", nsignif_ds1Only+nsignif_ds1And2, ")") , paste0("signif. ", gsub("-", "\n", ds2), "\n(", nsignif_ds2Only+nsignif_ds1And2, ")")),
-  
+  # category.names = c(paste0("signif. ", gsub("-", "\n", ds1), "\n(", nsignif_ds1Only+nsignif_ds1And2, ")") , paste0("signif. ", gsub("-", "\n", ds2), "\n(", nsignif_ds2Only+nsignif_ds1And2, ")")),
+  #category.names = c(paste0("signif. ", exprds1, "\n(", nsignif_ds1Only+nsignif_ds1And2, ")") , paste0("signif. ", exprds2, "\n(", nsignif_ds2Only+nsignif_ds1And2, ")")),
+  category.names = c(paste0( exprds1, "\n(", nsignif_ds1Only+nsignif_ds1And2, ")") , paste0( exprds2, "\n(", nsignif_ds2Only+nsignif_ds1And2, ")")),
   fontfamily="Hershey",
   cat.fontfamily="Hershey",
   main.fontfamily="Hershey",

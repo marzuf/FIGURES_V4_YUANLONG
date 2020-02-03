@@ -1,11 +1,11 @@
 
 startTime <- Sys.time()
-script_name <- "TF_expr.R"
+script_name <- "TF_expr_FC.R"
 
 cat(">START ", script_name, "\n")
 
-# Rscript TF_expr.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad
-# Rscript TF_expr.R ENCSR489OCU_NCI-H460_40kb TCGAluad_mutKRAS_mutEGFR
+# Rscript TF_expr_symbol.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad NKX2-1
+# Rscript TF_expr_symbol.R ENCSR489OCU_NCI-H460_40kb TCGAluad_mutKRAS_mutEGFR
 
 require(reshape2)
 require(ggplot2)
@@ -15,13 +15,15 @@ require(doMC)
 registerDoMC(40)
 
 args <- commandArgs(trailingOnly = TRUE)
-if(length(args) == 2) {
+if(length(args) == 3) {
   hicds <- args[1] 
   exprds <- args[2] 
+  symbol <- args[3]
 } else {
   hicds <-  "ENCSR489OCU_NCI-H460_40kb"
   exprds <- "TCGAluad_norm_luad"
   exprds <- "TCGAlusc_norm_lusc"
+  symbol <- "NKX2-1"
 }
 col1 <- pal_futurama()(5)[1]
 col2 <- pal_futurama()(5)[5]
@@ -48,12 +50,14 @@ entrezDT_file <- paste0(setDir, "/mnt/ed4/marie/entrez2synonym/entrez/ENTREZ_POS
 gff_dt <- read.delim(entrezDT_file, header = TRUE, stringsAsFactors = FALSE)
 gff_dt$entrezID <- as.character(gff_dt$entrezID)
 
+stopifnot(symbol %in% gff_dt$symbol)
+
 stopifnot(!duplicated(gff_dt$entrezID))
 stopifnot(!duplicated(gff_dt$symbol))
 entrez2symb <- setNames(gff_dt$symbol, gff_dt$entrezID)
 symb2entrez <- setNames(gff_dt$entrezID, gff_dt$symbol)
 
-outFolder <- "TF_EXPR"
+outFolder <- "TF_EXPR_SYMBOL"
 dir.create(outFolder, recursive = TRUE)
 
 runFolder <- "../v2_Yuanlong_Cancer_HiC_data_TAD_DA"
@@ -63,7 +67,6 @@ settingFolder <- file.path(runFolder, "PIPELINE", "INPUT_FILES")
 
 reg_file <- file.path(runFolder, "chea3_lung_TFs_processed.txt")
 reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE)
-
 
 cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
 reg_dt <- reg_dt[reg_dt$targetSymbol %in% names(symb2entrez),]
@@ -89,43 +92,8 @@ de_dt <- get(load(file.path(runFolder, "PIPELINE", "OUTPUT_FOLDER", hicds, exprd
 reg_dt <- reg_dt[reg_dt$regEntrezID %in% de_dt$genes,]
 cat(paste0("with expressed Reg Entrez: nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
 
-akr1c_dt <- reg_dt[reg_dt$targetSymbol %in% c("AKR1C1", "AKR1C2", "AKR1C3"),]
-sort(table(akr1c_dt$regSymbol), decreasing = TRUE)
-akr1c_tf_dt <- unique(akr1c_dt[,c("regSymbol", "regEntrezID")])
-stopifnot(!duplicated(akr1c_tf_dt$regEntrezID))
-stopifnot(!duplicated(akr1c_tf_dt$regSymbol))
-akr1c_tf <- setNames(akr1c_tf_dt$regSymbol, akr1c_tf_dt$regEntrezID)
-
-hoxb_dt <- reg_dt[reg_dt$targetSymbol %in% c( "HOXB2","HOXB3","HOXB4","HOXB5","HOXB6","HOXB7"),]
-sort(table(hoxb_dt$regSymbol), decreasing = TRUE)
-hoxb_tf_dt <- unique(hoxb_dt[,c("regSymbol", "regEntrezID")])
-stopifnot(!duplicated(hoxb_tf_dt$regEntrezID))
-stopifnot(!duplicated(hoxb_tf_dt$regSymbol))
-hoxb_tf <- setNames(hoxb_tf_dt$regSymbol, hoxb_tf_dt$regEntrezID)
-
-sftpa_dt <- reg_dt[reg_dt$targetSymbol %in% c( "SFTPA2","SFTPA1"),]
-sort(table(sftpa_dt$regSymbol), decreasing = TRUE)
-sftpa_tf_dt <- unique(sftpa_dt[,c("regSymbol", "regEntrezID")])
-stopifnot(!duplicated(sftpa_tf_dt$regEntrezID))
-stopifnot(!duplicated(sftpa_tf_dt$regSymbol))
-sftpa_tf <- setNames(sftpa_tf_dt$regSymbol, sftpa_tf_dt$regEntrezID)
-
-mmp_dt <- reg_dt[reg_dt$targetSymbol %in% c( "MMP1", "MMP12","MMP13"),]
-sort(table(mmp_dt$regSymbol), decreasing = TRUE)
-mmp_tf_dt <- unique(mmp_dt[,c("regSymbol", "regEntrezID")])
-stopifnot(!duplicated(mmp_tf_dt$regEntrezID))
-stopifnot(!duplicated(mmp_tf_dt$regSymbol))
-mmp_tf <- setNames(mmp_tf_dt$regSymbol, mmp_tf_dt$regEntrezID)
-
-if(grepl("norm_", exprds)) {
-  all_tf <- c( sftpa_tf, mmp_tf)
-  
-} else {
-  all_tf <- c(akr1c_tf, hoxb_tf)
-}
-
-
-all_tf_dt <- data.frame(tf_symbol = as.character(all_tf), tf_entrez = names(all_tf), stringsAsFactors = FALSE)
+all_tf_dt <- data.frame(tf_symbol = as.character(symbol), tf_entrez = gff_dt$entrezID[gff_dt$symbol == symbol], stringsAsFactors = FALSE)
+stopifnot(nrow(all_tf_dt) == 1)
 all_tf_dt <- unique(all_tf_dt)
 stopifnot(!duplicated(all_tf_dt$tf_symbol))
 stopifnot(!duplicated(all_tf_dt$tf_entrez))
@@ -133,14 +101,22 @@ stopifnot(!duplicated(all_tf_dt$tf_entrez))
 all_tf_unique <- setNames(all_tf_dt$tf_entrez, all_tf_dt$tf_symbol)
 
 
+stopifnot(all_tf_dt$tf_entrez %in% de_dt$genes)
+tmp_dt <- de_dt
+tmp_dt$tf_entrez <- tmp_dt$genes
+tmp_dt <- tmp_dt[order(abs(tmp_dt$logFC), decreasing = TRUE),]
+tmp_dt$absLogFC_rank <- rank(-abs(tmp_dt$logFC))
+rank_dt <- merge(all_tf_dt, tmp_dt[,c("tf_entrez", "logFC", "absLogFC_rank")], by=c("tf_entrez"), all.x=TRUE, all.y=FALSE)
+stopifnot(!is.na(rank_dt))
+
+all_tf_rank <- setNames(rank_dt$absLogFC_rank, rank_dt$tf_entrez)
+all_tf_rank <- sort(all_tf_rank)
 
 count_file <- file.path(pipFolder, hicds, exprds, "1_runGeneDE", "DE_rnaseqDT.Rdata")
 stopifnot(file.exists(count_file))
 fpkm_dt <- get(load(count_file))
 
 stopifnot(all_tf_unique %in% rownames(fpkm_dt))
-
-
 
 settingFile <- file.path(settingFolder, hicds, paste0("run_settings_", exprds, ".R"))
 stopifnot(file.exists(settingFile))
@@ -151,35 +127,20 @@ samp2 <- get(load(file.path(setDir, sample2_file)))
 
 ## => boxplot for selected TF elements here !
 
-# all_tf_unique = setNames(c("9817", "4780"), c("KEAP1", "NFE2L2"))
-# all_tf_unique = setNames(c("2551"), c( "GABPA"))
+
+stopifnot(setequal(all_tf_unique, names(all_tf_rank)))
 
 tf = all_tf_unique[1]
-out_dt <- foreach(tf = all_tf_unique, .combine='rbind')%dopar%{
+out_dt <- foreach(tf = names(all_tf_rank), .combine='rbind')%do%{
 
   
+  tf_rank <- all_tf_rank[paste0(tf)]
+  
   stopifnot(tf %in% rownames(fpkm_dt))
-    
   
-  if(grepl("norm_", exprds)) {
-    
-    subTit <- paste0(
-                     "MMP* TF: ", as.character(tf %in% names(mmp_tf)),
-                     "; SFTPA* TF: ", as.character(tf %in% names(sftpa_tf)))
-    
-    
-    
-  } else {
-    subTit <- paste0("AKR1C* TF: ", as.character(tf %in% names(akr1c_tf)),
-                     "; HOXB* TF: ", as.character(tf %in% names(hoxb_tf)))
-    
-  }
+  stopifnot(tf %in% names(all_tf_rank))  
   
-  # subTit <- paste0("AKR1C* TF: ", as.character(tf %in% names(akr1c_tf)),
-  #                "; HOXB* TF: ", as.character(tf %in% names(hoxb_tf)),
-  #                "; MMP* TF: ", as.character(tf %in% names(mmp_tf)),
-  #                "; SFTPA* TF: ", as.character(tf %in% names(sftpa_tf)))
-  # 
+  subTit <- paste0("TF rank: ", tf_rank)
   
   fpkm_plot_dt <- fpkm_dt[rownames(fpkm_dt) == tf,,drop=FALSE]
   fpkm_plot_dt$entrezID <- rownames(fpkm_plot_dt)
@@ -265,7 +226,7 @@ out_dt <- foreach(tf = all_tf_unique, .combine='rbind')%dopar%{
       legend.title = element_text(face="bold")
     )
   
-  outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", tf_symbol, "_allSamples_exprValues_boxplot.", plotType))
+  outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", tf_symbol, "_rank", tf_rank , "_allSamples_exprValues_boxplot.", plotType))
   ggsave(plot = p_var_boxplot, filename = outFile, height=myHeightGG, width = myWidthGG*1.2)
   cat(paste0("... written: ", outFile, "\n"))
   
@@ -287,7 +248,7 @@ out_dt$diffMeanExpr <- out_dt$meanExpr_cond1-out_dt$meanExpr_cond2
 out_dt$diffMeanExpr_abs <- abs(out_dt$diffMeanExpr)
 out_dt <- out_dt[order(out_dt$diffMeanExpr_abs, decreasing=TRUE),]
 
-outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_allTF_allSamples_outDT.txt"))
+outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", symbol, "_allTF_allSamples_outDT.txt"))
 # outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_KEAP1_NFE2L2_allSamples_outDT.txt"))
 # outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_NRF2_allSamples_outDT.txt"))
 write.table(out_dt, file=outFile, sep="\t", quote=F, append=F, col.names=TRUE, row.names=FALSE)

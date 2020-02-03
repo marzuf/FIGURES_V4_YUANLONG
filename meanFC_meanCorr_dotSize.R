@@ -208,8 +208,8 @@ plot(
   cex.lab=plotCex,
   axes=FALSE
 )
-axis(1, at = x_breaks, lwd=0, lwd.ticks = 1)
-axis(2, at = y_breaks, lwd=0, lwd.ticks = 1)
+axis(1, at = x_breaks, lwd=0, lwd.ticks = 1, cex = plotCex, cex.axis=plotCex, cex.lab=plotCex)
+axis(2, at = y_breaks, lwd=0, lwd.ticks = 1, cex = plotCex, cex.axis=plotCex, cex.lab=plotCex)
 box(bty="L")
 points(x = ex_DT$meanLogFC[1:10],
        y = ex_DT$meanCorr[1:10],

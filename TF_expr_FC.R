@@ -1,11 +1,11 @@
 
 startTime <- Sys.time()
-script_name <- "TF_expr.R"
+script_name <- "TF_expr_FC.R"
 
 cat(">START ", script_name, "\n")
 
-# Rscript TF_expr.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad
-# Rscript TF_expr.R ENCSR489OCU_NCI-H460_40kb TCGAluad_mutKRAS_mutEGFR
+# Rscript TF_expr_FC.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad
+# Rscript TF_expr_FC.R ENCSR489OCU_NCI-H460_40kb TCGAluad_mutKRAS_mutEGFR
 
 require(reshape2)
 require(ggplot2)
@@ -53,7 +53,7 @@ stopifnot(!duplicated(gff_dt$symbol))
 entrez2symb <- setNames(gff_dt$symbol, gff_dt$entrezID)
 symb2entrez <- setNames(gff_dt$entrezID, gff_dt$symbol)
 
-outFolder <- "TF_EXPR"
+outFolder <- "TF_EXPR_FC"
 dir.create(outFolder, recursive = TRUE)
 
 runFolder <- "../v2_Yuanlong_Cancer_HiC_data_TAD_DA"
@@ -63,7 +63,6 @@ settingFolder <- file.path(runFolder, "PIPELINE", "INPUT_FILES")
 
 reg_file <- file.path(runFolder, "chea3_lung_TFs_processed.txt")
 reg_dt <- read.delim(reg_file, sep="\t", header=TRUE, stringsAsFactors = FALSE)
-
 
 cat(paste0("init nrow(reg_dt)", "\t=\t", nrow(reg_dt), "\n"))
 reg_dt <- reg_dt[reg_dt$targetSymbol %in% names(symb2entrez),]
@@ -125,6 +124,11 @@ if(grepl("norm_", exprds)) {
 }
 
 
+# all_tf_unique = setNames(c("9817", "4780"), c("KEAP1", "NFE2L2"))
+# all_tf_unique = setNames(c("2551"), c( "GABPA"))
+
+
+
 all_tf_dt <- data.frame(tf_symbol = as.character(all_tf), tf_entrez = names(all_tf), stringsAsFactors = FALSE)
 all_tf_dt <- unique(all_tf_dt)
 stopifnot(!duplicated(all_tf_dt$tf_symbol))
@@ -133,6 +137,16 @@ stopifnot(!duplicated(all_tf_dt$tf_entrez))
 all_tf_unique <- setNames(all_tf_dt$tf_entrez, all_tf_dt$tf_symbol)
 
 
+stopifnot(all_tf_dt$tf_entrez %in% de_dt$genes)
+tmp_dt <- de_dt
+tmp_dt$tf_entrez <- tmp_dt$genes
+tmp_dt <- tmp_dt[order(abs(tmp_dt$logFC), decreasing = TRUE),]
+tmp_dt$absLogFC_rank <- rank(-abs(tmp_dt$logFC))
+rank_dt <- merge(all_tf_dt, tmp_dt[,c("tf_entrez", "logFC", "absLogFC_rank")], by=c("tf_entrez"), all.x=TRUE, all.y=FALSE)
+stopifnot(!is.na(rank_dt))
+
+all_tf_rank <- setNames(rank_dt$absLogFC_rank, rank_dt$tf_entrez)
+all_tf_rank <- sort(all_tf_rank)
 
 count_file <- file.path(pipFolder, hicds, exprds, "1_runGeneDE", "DE_rnaseqDT.Rdata")
 stopifnot(file.exists(count_file))
@@ -151,26 +165,30 @@ samp2 <- get(load(file.path(setDir, sample2_file)))
 
 ## => boxplot for selected TF elements here !
 
-# all_tf_unique = setNames(c("9817", "4780"), c("KEAP1", "NFE2L2"))
-# all_tf_unique = setNames(c("2551"), c( "GABPA"))
+
+stopifnot(setequal(all_tf_unique, names(all_tf_rank)))
 
 tf = all_tf_unique[1]
-out_dt <- foreach(tf = all_tf_unique, .combine='rbind')%dopar%{
+out_dt <- foreach(tf = names(all_tf_rank), .combine='rbind')%do%{
 
   
+  tf_rank <- all_tf_rank[paste0(tf)]
+  
   stopifnot(tf %in% rownames(fpkm_dt))
-    
+  
+  stopifnot(tf %in% names(all_tf_rank))  
   
   if(grepl("norm_", exprds)) {
     
-    subTit <- paste0(
-                     "MMP* TF: ", as.character(tf %in% names(mmp_tf)),
+    subTit <- paste0("TF rank: ", tf_rank,
+                     "; MMP* TF: ", as.character(tf %in% names(mmp_tf)),
                      "; SFTPA* TF: ", as.character(tf %in% names(sftpa_tf)))
     
     
     
   } else {
-    subTit <- paste0("AKR1C* TF: ", as.character(tf %in% names(akr1c_tf)),
+    subTit <- paste0("TF rank: ", tf_rank,
+                     "; AKR1C* TF: ", as.character(tf %in% names(akr1c_tf)),
                      "; HOXB* TF: ", as.character(tf %in% names(hoxb_tf)))
     
   }
@@ -265,7 +283,7 @@ out_dt <- foreach(tf = all_tf_unique, .combine='rbind')%dopar%{
       legend.title = element_text(face="bold")
     )
   
-  outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", tf_symbol, "_allSamples_exprValues_boxplot.", plotType))
+  outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", tf_symbol, "_rank", tf_rank , "_allSamples_exprValues_boxplot.", plotType))
   ggsave(plot = p_var_boxplot, filename = outFile, height=myHeightGG, width = myWidthGG*1.2)
   cat(paste0("... written: ", outFile, "\n"))
   
