@@ -301,9 +301,19 @@ out_dt <- foreach(tf = names(all_tf_rank), .combine='rbind')%do%{
   )  
   
 }
-out_dt$diffMeanExpr <- out_dt$meanExpr_cond1-out_dt$meanExpr_cond2
-out_dt$diffMeanExpr_abs <- abs(out_dt$diffMeanExpr)
-out_dt <- out_dt[order(out_dt$diffMeanExpr_abs, decreasing=TRUE),]
+# out_dt$diffMeanExpr <- out_dt$meanExpr_cond1-out_dt$meanExpr_cond2
+# out_dt$diffMeanExpr_abs <- abs(out_dt$diffMeanExpr)
+# out_dt <- out_dt[order(out_dt$diffMeanExpr_abs, decreasing=TRUE),]
+out_dt$FC <- out_dt$meanExpr_cond2/out_dt$meanExpr_cond1
+out_dt$logFC <- log2(out_dt$FC)
+out_dt <- out_dt[order(abs(out_dt$logFC), decreasing=TRUE),]
+
+out_dt$FC <- NULL
+
+out_dt$meanExpr_cond1 <- round(out_dt$meanExpr_cond1, 4)
+out_dt$meanExpr_cond2 <- round(out_dt$meanExpr_cond2, 4)
+out_dt$logFC <- round(out_dt$logFC, 4)
+
 
 outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_allTF_allSamples_outDT.txt"))
 # outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_KEAP1_NFE2L2_allSamples_outDT.txt"))
