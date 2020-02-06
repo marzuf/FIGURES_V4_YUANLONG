@@ -36,6 +36,32 @@ g2t_dt_symb[grepl("^SFTP", g2t_dt_symb$symbol),]
 unique(g2t_dt_symb$region[grepl("^SFTP", g2t_dt_symb$symbol)])
 # "chr10_TAD268" "chr2_TAD331"  "chr8_TAD85"   "chr10_TAD269"
 
+
+
+all_hoxb_entrez <- g2t_dt_symb$entrezID[grepl("^HOXB", g2t_dt_symb$symbol)]
+all_mmp_entrez <- g2t_dt_symb$entrezID[grepl("^MMP", g2t_dt_symb$symbol)]
+all_sftp_entrez <- g2t_dt_symb$entrezID[grepl("^SFTP", g2t_dt_symb$symbol)]
+all_akr1c_entrez <- g2t_dt_symb$entrezID[grepl("^AKR1C", g2t_dt_symb$symbol)]
+
+
+hicds="ENCSR489OCU_NCI-H460_40kb"
+exprds = "TCGAluad_norm_luad"
+gL = get(load(file.path("../v2_Yuanlong_Cancer_HiC_data_TAD_DA/PIPELINE/OUTPUT_FOLDER/", hicds, exprds, "0_prepGeneData", "pipeline_geneList.Rdata")))
+
+ds_sftp <- g2t_dt_symb$symbol[g2t_dt_symb$entrezID %in% all_sftp_entrez[all_sftp_entrez %in% gL]]
+ds_sftp
+
+ds_mmp <- g2t_dt_symb$symbol[g2t_dt_symb$entrezID %in% all_mmp_entrez[all_mmp_entrez %in% gL]]
+ds_mmp
+
+ds_akr1c <- g2t_dt_symb$symbol[g2t_dt_symb$entrezID %in% all_akr1c_entrez[all_akr1c_entrez %in% gL]]
+ds_akr1c
+
+ds_hoxb <- g2t_dt_symb$symbol[g2t_dt_symb$entrezID %in% all_hoxb_entrez[all_hoxb_entrez %in% gL]]
+ds_hoxb
+
+
+
 Rscript look_TAD_expression_withRank_withMutStatus.R ENCSR489OCU_NCI-H460_40kb TCGAluad_mutKRAS_mutEGFR chr17_TAD162
 Rscript look_TAD_expression_withRank_withMutStatus.R ENCSR489OCU_NCI-H460_40kb TCGAluad_mutKRAS_mutEGFR chr17_TAD163
 Rscript look_TAD_expression_withRank_withMutStatus.R ENCSR489OCU_NCI-H460_40kb TCGAluad_mutKRAS_mutEGFR chr10_TAD17
