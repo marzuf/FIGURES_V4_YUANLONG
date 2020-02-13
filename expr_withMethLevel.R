@@ -5,8 +5,14 @@ script_name <- "corrExpr_geneWithTAD_condCol.R"
 cat(">START ", script_name, "\n")
 
 
-# Rscript expr_withMethLevel.R ENCSR489OCU_NCI-H460_40kb TCGAluad_mutKRAS_mutEGFR
-
+# Rscript expr_withMethLevel.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad median TRUE
+# Rscript expr_withMethLevel.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad max TRUE
+# Rscript expr_withMethLevel.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad mean TRUE
+# Rscript expr_withMethLevel.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad mean FALSE
+# Rscript expr_withMethLevel.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad max FALSE
+# Rscript expr_withMethLevel.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad median FALSE
+# 
+require(ggpubr)
 require(reshape2)
 require(ggplot2)
 require(ggsci)
@@ -14,29 +20,40 @@ require(foreach)
 require(doMC)
 registerDoMC(40)
 
+hicds = "ENCSR489OCU_NCI-H460_40kb"
+exprds = "TCGAluad_norm_luad"
+aggregFunc <- "median"
+withMut <- FALSE
+
 args <- commandArgs(trailingOnly = TRUE)
 if(length(args) == 4) {
-  hicds <- args[1] 
-  exprds <- args[2] 
-  tad_to_plot <- args[3]
-  symbol_to_plot <- args[4]
+  hicds <- args[1]
+  exprds <- args[2]
+  aggregFunc <- args[3]
+  withMut <- as.logical(args[4])
+  stopifnot(!is.na(aggregFunc))
+  stopifnot(!is.na(withMut))
+  stopifnot(exists(aggregFunc))
+} else if(length(args) == 2) {
+  hicds <-  args[1]
+  exprds <- args[2]
+  aggregFunc <- "median"
+  withMut <- FALSE
 } else {
-  hicds <-  "ENCSR489OCU_NCI-H460_40kb"
-  exprds <- "TCGAluad_norm_luad"
+  stop("-")
 }
 col1 <- pal_futurama()(5)[1]
 col2 <- pal_futurama()(5)[5]
 col1 <- pal_aaas()(5)[4]
 col2 <- pal_npg()(5)[5]
 
-aggregFunc <- "max"
+
 
 dotShape <- 16
 shapeMut <- 15
 shapeWt <- 8
 
 
-withMut <- TRUE
 withMut_suffix <- ifelse(withMut, "_withMut", "")
 
 require(reshape2)
@@ -56,11 +73,11 @@ myHeight <- ifelse(plotType=="png", 500, 7)
 myWidth <- myHeight
 plotCex <- 1.4
 myHeightGG <- 6
-myWidthGG <- 7.5
+myWidthGG <- 6
 
 log10_offset <- 0.01
 
-setDir <- "/media/electron"
+# setDir <- "/media/electron"
 setDir <- ""
 entrezDT_file <- paste0(setDir, "/mnt/ed4/marie/entrez2synonym/entrez/ENTREZ_POS/gff_entrez_position_GRCh37p13_nodup.txt")
 gff_dt <- read.delim(entrezDT_file, header = TRUE, stringsAsFactors = FALSE)
@@ -140,6 +157,8 @@ stopifnot(!is.na(plot_dt$dotShape))
 if(!withMut) plot_dt$dotShape <- dotShape
 
 
+my_ylab <- bquote(beta ~ " value methylation ("*.(aggregFunc)*")")  # use * instead of ~ to get rid off the space
+
 plot_entrez =entrez_to_plot[1]
 for(plot_entrez in entrez_to_plot) {
   
@@ -159,13 +178,17 @@ for(plot_entrez in entrez_to_plot) {
   do.call(plotType, list(outFile, height=myHeight, width=myWidth*1.2))
   
   par(bty="L")
-  # par(mar=c(5,4,2,6))
+  par(mar=par()$mar + c(0,1,0,0))
   plot(
     x = myx,
     y = myy,
     main = "Expression and methylation",
     xlab = paste0(plot_symbol, " - RNA-seq FPKM [log10]"),
-    ylab = paste0("\u0392 value methylation (", aggregFunc, ")"),
+    # ylab = paste0("\u0392 value methylation (", aggregFunc, ")"),
+    
+    # ylab = expression(paste(beta,  " value methylation (", 
+    ylab = my_ylab,                     
+    
     cex = 0.7,
     pch = sub_dt$dotShape,
     col= sub_dt$dotCols,
@@ -195,14 +218,49 @@ for(plot_entrez in entrez_to_plot) {
       # c(max(myx), max(myy)),
       legend= c(cond1, cond2),
       pch = c(dotShape),
-      text.col = c(col1, col2),
+      col = c(col1, col2),
+      # text.col = c("col1", col2),
       bty="n"
     )
     
   }
-  
   foo <- dev.off()
   cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  save(sub_dt, file = "sub_dt.Rdata")
+  
+  #BOXPLOT
+  my_ylab <- paste0("\u03B2 value methylation (", aggregFunc, ")")
+  
+  sub_dt$cond <- factor(sub_dt$cond, levels=c(cond1, cond2))
+  stopifnot(!is.na(sub_dt$cond))
+  p_box <- ggboxplot(data = sub_dt, x = "cond", y = "beta_met",
+            color = "cond",  add  = "jitter",
+            title = paste0(plot_symbol, " promoter methylation"),
+            xlab = "",
+            ylab = my_ylab
+            ) + 
+    scale_y_continuous(#name=paste0(my_ylab),
+                       breaks = scales::pretty_breaks(n = 10))+
+    
+  scale_color_manual(values=setNames(c(col1, col2), c(cond1, cond2))) +
+    theme(
+      legend.position='none',
+      plot.title = element_text(size=16, hjust=0.5, face="bold"),
+      axis.text.x = element_text(size=14, face="bold"),
+      axis.text.y = element_text(size=14),
+      axis.title.y = element_text(size=16)
+    ) +
+   stat_compare_means()  
+
+  # scale_fill_manual(values=setNames(c(col1, col2), c(cond1, cond2)))
+  outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", plot_symbol, "_", plot_region, "_betaMet_agg", aggregFunc, "_boxplot.", plotType))
+  ggsave(p_box, filename = outFile, height=myHeightGG, width=myWidthGG)
+  cat(paste0("... written: ", outFile, "\n"))
+  
+  
+  
   
   
 }

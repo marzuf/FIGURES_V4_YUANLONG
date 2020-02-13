@@ -1,8 +1,8 @@
 ########################################################################################################################################################################################
 startTime <- Sys.time()
-cat(paste0("> Rscript look_fam_expression_withRank_withMutStatus.R\n"))
+cat(paste0("> Rscript look_fam_expression_withRank_withMutStatus_facet.R\n"))
 
-script_name <- "look_fam_expression_withRank_withMutStatus.R"
+script_name <- "look_fam_expression_withRank_withMutStatus_facet.R"
 
 suppressPackageStartupMessages(library(foreach, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
 suppressPackageStartupMessages(library(doMC, warn.conflicts = FALSE, quietly = TRUE, verbose = FALSE))
@@ -19,15 +19,12 @@ widthExp <- 1.8
 
 xtxtSize <- 10
 
-# Rscript look_fam_expression_withRank_withMutStatus.R <hicds> <exprds> <gene_symbol>
+# Rscript look_fam_expression_withRank_withMutStatus_facet.R <hicds> <exprds> <gene_symbol>
 
-# Rscript look_fam_expression_withRank_withMutStatus.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad MMP
-# Rscript look_fam_expression_withRank_withMutStatus.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad SFTPA
-# Rscript look_fam_expression_withRank_withMutStatus.R ENCSR489OCU_NCI-H460_40kb TCGAluad_mutKRAS_mutEGFR HOXB
-# Rscript look_fam_expression_withRank_withMutStatus.R ENCSR489OCU_NCI-H460_40kb TCGAluad_mutKRAS_mutEGFR AKR1C
-
-
-
+# Rscript look_fam_expression_withRank_withMutStatus_facet.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad MMP
+# Rscript look_fam_expression_withRank_withMutStatus_facet.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad SFTPA
+# Rscript look_fam_expression_withRank_withMutStatus_facet.R ENCSR489OCU_NCI-H460_40kb TCGAluad_mutKRAS_mutEGFR HOXB
+# Rscript look_fam_expression_withRank_withMutStatus_facet.R ENCSR489OCU_NCI-H460_40kb TCGAluad_mutKRAS_mutEGFR AKR1C
 
 hicds="ENCSR489OCU_NCI-H460_40kb"
 exprds="TCGAlusc_norm_lusc"
@@ -37,6 +34,9 @@ col1 <- pal_futurama()(5)[1]
 col2 <- pal_futurama()(5)[5]
 col1 <- pal_aaas()(5)[4]
 col2 <- pal_npg()(5)[5]
+col1_mut <- "#40104e"
+col2_mut <- "#b23811"
+
 
 mutCol <- "chartreuse3"
 notmutCol <- "darkgrey"
@@ -71,7 +71,7 @@ mainFolder <- file.path("../v2_Yuanlong_Cancer_HiC_data_TAD_DA")
 pipFolder <- file.path(mainFolder, "PIPELINE", "OUTPUT_FOLDER")
 settingFolder <- file.path(mainFolder, "PIPELINE", "INPUT_FILES")
 
-outFolder <- file.path("LOOK_FAM_EXPRESSION_WITHRANK_WITHMUTSTATUS")
+outFolder <- file.path("LOOK_FAM_EXPRESSION_WITHRANK_WITHMUTSTATUS_FACET")
 dir.create(outFolder, recursive = TRUE)
 
 mutSamples <- get(load("../v2_Yuanlong_Cancer_HiC_data_TAD_DA/NFE2L2_KEAP1_MUTSAMPLES/mut_samples.Rdata"))
@@ -182,27 +182,45 @@ stopifnot(!is.na(withRank_toplot_dt2$symbol_lab))
 
 save(withRank_toplot_dt2, file ="withRank_toplot_dt2.Rdata")
 
+# > unique(withRank_toplot_dt2$cond_dots)
+# [1] norm    luad    withMut
+# Levels: norm luad withMut
+# > unique(withRank_toplot_dt2$cond_sh)
+# [1] noMut   withMut
+# Levels: noMut withMut
+# > unique(withRank_toplot_dt2$cond)
+# [1] norm luad
+
+
+withRank_toplot_dt2$all_cond <- interaction(withRank_toplot_dt2$cond, withRank_toplot_dt2$cond_sh)
+withRank_toplot_dt2$all_cond <- factor(withRank_toplot_dt2$all_cond, levels = 
+                                         c(paste0(cond1, ".noMut"),paste0(cond1, ".withMut"),  paste0(cond2, ".noMut"), paste0(cond2, ".withMut")))
+
+withRank_toplot_dt2$group <- interaction(withRank_toplot_dt2$symbol_lab, withRank_toplot_dt2$cond)
+
+
 subTit <- paste0(fam_to_plot, " genes")
 
-p_var_boxplot <-  ggplot(withRank_toplot_dt2, aes(x = symbol_lab, y = value_log10, fill = cond)) + 
+p_var_boxplot <-  ggplot(withRank_toplot_dt2, aes(x = symbol_lab, y = value_log10, fill = cond, group=group)) + 
   geom_boxplot(notch = TRUE, outlier.shape=NA)+
-  geom_jitter(aes(colour = cond, fill =cond, shape=cond_sh), position=position_jitterdodge(), alpha=0.7)+
+  geom_jitter(aes(colour = all_cond), position=position_jitterdodge(), alpha=0.7)+
   # geom_jitter(aes(colour = cond, shape=cond_sh), position=position_jitterdodge())+
   ggtitle(paste0(hicds, " - ", exprds), subtitle = paste0(subTit))+
-  scale_x_discrete(name=my_xlab)+
+  scale_x_discrete(name=my_xlab,drop=FALSE)+
   scale_y_continuous(name=paste0(my_ylab),
                      breaks = scales::pretty_breaks(n = 20))+
+
   
-  scale_shape_manual(
-    values = c(15,8),
-    breaks = c("noMut", "withMut"),
-    labels = c("not mut.", "mut.")
-  )+
+  scale_color_manual(values=setNames(c(col1, col1_mut, col2, col2_mut), 
+                                     c(paste0(cond1, ".noMut"),paste0(cond1, ".withMut"),  paste0(cond2, ".noMut"), paste0(cond2, ".withMut"))),
+                     labels=setNames(c(paste0(cond1, "-wt"),paste0(cond1, "-mut"),  paste0(cond2, "-wt"), paste0(cond2, "-mut")),
+                                     c(paste0(cond1, ".noMut"),paste0(cond1, ".withMut"),  paste0(cond2, ".noMut"), paste0(cond2, ".withMut")))) + 
   
-  scale_color_manual(values=c(col1, col2))+
-  scale_fill_manual(values=c(col1, col2))+
+  scale_fill_manual(values=setNames(c(col1, col2),
+                                    c(cond1, cond2)))+
   
-  labs(fill  = paste0("Cond."), color=paste0("Cond."), shape=paste0("KEAP1|NFE2L2")) +
+  
+  labs(fill  = paste0(""), color=paste0("Cond.-\nKEAP1|NEF2L2 stat."))+
   theme( 
     plot.title = element_text(hjust = 0.5, face = "bold", size=16),
     plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
@@ -221,40 +239,36 @@ p_var_boxplot <-  ggplot(withRank_toplot_dt2, aes(x = symbol_lab, y = value_log1
     legend.background =  element_rect(),
     legend.text = element_text(size=12),
     legend.key = element_blank(),
-    legend.title = element_text(face="bold", size=12)
+    legend.title = element_text(face="bold", size=12, hjust=0.5)
   )
 
-outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", fam_to_plot, "_allSamples_exprValues_boxplot_vShape.", plotType))
+outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", fam_to_plot, "_allSamples_exprValues_boxplot_condBox_condmutJitter.", plotType))
 ggsave(plot = p_var_boxplot, filename = outFile, height=myHeightGG, width = myWidthGG*widthExp)
 cat(paste0("... written: ", outFile, "\n"))
 
 
-withRank_toplot_dt2$cond_border <- paste0(withRank_toplot_dt2$cond , "_", withRank_toplot_dt2$cond_sh)
-withRank_toplot_dt2$cond_border <- factor(withRank_toplot_dt2$cond_border, levels = c(
-  paste0(cond1, "_noMut"),  paste0(cond1, "_withMut"), paste0(cond2, "_noMut"), paste0(cond2, "_withMut")
-))
-stopifnot(!is.na(withRank_toplot_dt2$cond_border))
-
-
-save(withRank_toplot_dt2, file="withRank_toplot_dt2.Rdata", version=2)
-
-p_var_boxplot <- ggplot(withRank_toplot_dt2, aes(x = symbol_lab, y = value_log10, fill = cond)) +
+p_var_boxplot <-  ggplot(withRank_toplot_dt2, aes(x = symbol_lab, y = value_log10, fill = all_cond)) + 
   geom_boxplot(notch = TRUE, outlier.shape=NA)+
-  geom_point(aes(color=cond_border), position=position_jitterdodge(), stroke=0.8, shape=21, alpha=0.8) +
+  geom_jitter(aes(colour = all_cond, fill = all_cond), position=position_jitterdodge(), alpha=0.7)+
+  # geom_jitter(aes(colour = cond, shape=cond_sh), position=position_jitterdodge())+
   ggtitle(paste0(hicds, " - ", exprds), subtitle = paste0(subTit))+
   scale_x_discrete(name=my_xlab)+
   scale_y_continuous(name=paste0(my_ylab),
                      breaks = scales::pretty_breaks(n = 20))+
+
+  scale_color_manual(values=setNames(c(col1, col1_mut, col2, col2_mut), 
+                                     c(paste0(cond1, ".noMut"),paste0(cond1, ".withMut"),  paste0(cond2, ".noMut"), paste0(cond2, ".withMut"))),
+                     labels=setNames(c(paste0(cond1, "-wt"),paste0(cond1, "-mut"),  paste0(cond2, "-wt"), paste0(cond2, "-mut")),
+                              c(paste0(cond1, ".noMut"),paste0(cond1, ".withMut"),  paste0(cond2, ".noMut"), paste0(cond2, ".withMut")))) + 
   
-  ### NEED TO USE setNames => TO HAVE THE MATCH WHEN FOR ONE CATEGORY I HAVE NO DATA !!!
-  scale_color_manual( values=c( setNames(c(col1, mutCol,  col2, mutCol),   c(paste0(cond1, "_noMut"),  paste0(cond1, "_withMut"), paste0(cond2, "_noMut"), paste0(cond2, "_withMut")))),
-                      labels = c(setNames(c(paste0(cond1," -\nnot mut."), paste0(cond1," -\nmut."), paste0(cond2," -\nnot mut."), paste0(cond2," -\nmut.")), 
-                                          c(paste0(cond1, "_noMut"),  paste0(cond1, "_withMut"), paste0(cond2, "_noMut"), paste0(cond2, "_withMut")))))+
+  scale_fill_manual(values=setNames(c(col1, col1_mut, col2, col2_mut), 
+                                     c(paste0(cond1, ".noMut"),paste0(cond1, ".withMut"),  paste0(cond2, ".noMut"), paste0(cond2, ".withMut")))) + 
   
-  scale_fill_manual( values=c(col1, col2))+
-  labs(fill  = paste0("Cond."), fill=paste0("Cond."), color=paste0("KEAP1|NEF2L2")) +
+  guides(fill = FALSE) +
   
-  theme(
+  labs( color=paste0("Cond.-\nKEAP1|NEF2L2 stat.")) +
+  
+  theme( 
     plot.title = element_text(hjust = 0.5, face = "bold", size=16),
     plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
     panel.grid = element_blank(),
@@ -272,77 +286,12 @@ p_var_boxplot <- ggplot(withRank_toplot_dt2, aes(x = symbol_lab, y = value_log10
     legend.background =  element_rect(),
     legend.text = element_text(size=12),
     legend.key = element_blank(),
-    
-    legend.key.size = unit(1.2, 'cm'),
-    
-    legend.title = element_text(face="bold", size=12)
+    legend.title = element_text(face="bold", size=12, hjust=0.5)
   )
 
-outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", fam_to_plot, "_allSamples_exprValues_boxplot_vCol.", plotType))
+outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", fam_to_plot, "_allSamples_exprValues_boxplot_condmutBox_condmutJitter.", plotType))
 ggsave(plot = p_var_boxplot, filename = outFile, height=myHeightGG, width = myWidthGG*widthExp)
 cat(paste0("... written: ", outFile, "\n"))
-
-
-
-
-
-save(withRank_toplot_dt2, file="withRank_toplot_dt2.Rdata", version=2)
-
-p_var_boxplot <- ggplot(withRank_toplot_dt2, aes(x = symbol_lab, y = value_log10, fill = cond)) +
-  
-  geom_boxplot(notch = TRUE, outlier.shape=NA)+
-  geom_point(aes(color=cond_sh, shape=cond), position=position_jitterdodge(), stroke=0.8, size=1,alpha=0.8) +
-  ggtitle(paste0(hicds, " - ", exprds), subtitle = paste0(subTit))+
-  
-  scale_x_discrete(name=my_xlab)+
-  scale_y_continuous(name=paste0(my_ylab),
-                     breaks = scales::pretty_breaks(n = 20))+
-  
-  ### NEED TO USE setNames => TO HAVE THE MATCH WHEN FOR ONE CATEGORY I HAVE NO DATA !!!
-  scale_color_manual( values=c( setNames(c(notmutCol, mutCol),   c(paste0("noMut"), paste0( "withMut")))),
-                      labels = c(setNames(c(paste0("not mut."), paste0("mut.")), 
-                                          c( paste0("noMut"), paste0( "withMut")))))+
-  
-  scale_shape_manual(values=c(1,2))+
-  
-  scale_fill_manual( values=c(col1, col2))+
-  labs(shape  = paste0("Cond."), fill=paste0("Cond."), color=paste0("KEAP1|NEF2L2")) +
-  
-  
-  
-  theme(
-    plot.title = element_text(hjust = 0.5, face = "bold", size=16),
-    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 14),
-    panel.grid = element_blank(),
-    panel.grid.major.y = element_line(colour = "grey"),
-    panel.grid.minor.y = element_line(colour = "grey"),
-    axis.line.x= element_line(size = .2, color = "black"),
-    axis.line.y = element_line(size = .2, color = "black"),
-    axis.text.y = element_text(color="black", hjust=1,vjust = 0.5, size=12),
-    axis.text.x =element_text(color="black", hjust=1,vjust = 0.5, size=xtxtSize, face="bold", angle=90),
-    # axis.ticks.x = element_blank(),
-    axis.title.y = element_text(color="black", size=14),
-    axis.title.x = element_text(color="black", size=14),
-    panel.border = element_blank(),
-    panel.background = element_rect(fill = "transparent"),
-    legend.background =  element_rect(),
-    legend.text = element_text(size=12),
-    legend.key = element_blank(),
-    
-    legend.key.size = unit(1.2, 'cm'),
-    
-    legend.title = element_text(face="bold", size=12)
-  )
-
-outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_", fam_to_plot, "_allSamples_exprValues_boxplot_vShapeCol.", plotType))
-ggsave(plot = p_var_boxplot, filename = outFile, height=myHeightGG, width = myWidthGG*widthExp)
-cat(paste0("... written: ", outFile, "\n"))
-
-
-
-
-
-
 
 
 ##############################

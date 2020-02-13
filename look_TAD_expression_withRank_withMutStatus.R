@@ -205,10 +205,11 @@ save(withRank_toplot_dt2, file ="withRank_toplot_dt2.Rdata")
 subTit <- paste0(tad_to_plot, " (rank: ", tad_plot_rank, ")")
 
 p_var_boxplot <-  ggplot(withRank_toplot_dt2, aes(x = symbol_lab, y = value_log10, fill = cond)) + 
+  
+  geom_boxplot(notch = TRUE, outlier.shape=NA)+
   geom_jitter(aes(colour = cond, fill =cond, shape=cond_sh), position=position_jitterdodge(), alpha=0.7)+
   # geom_jitter(aes(colour = cond, shape=cond_sh), position=position_jitterdodge())+
   
-  geom_boxplot(notch = TRUE, outlier.shape=NA)+
   ggtitle(paste0(hicds, " - ", exprds), subtitle = paste0(subTit))+
   scale_x_discrete(name=my_xlab)+
   scale_y_continuous(name=paste0(my_ylab),
@@ -260,8 +261,8 @@ stopifnot(!is.na(withRank_toplot_dt2$cond_border))
 save(withRank_toplot_dt2, file="withRank_toplot_dt2.Rdata", version=2)
 
 p_var_boxplot <- ggplot(withRank_toplot_dt2, aes(x = symbol_lab, y = value_log10, fill = cond)) +
-  geom_point(aes(color=cond_border), position=position_jitterdodge(), stroke=0.8, shape=21, alpha=0.8) +
   geom_boxplot(notch = TRUE, outlier.shape=NA)+
+  geom_point(aes(color=cond_border), position=position_jitterdodge(), stroke=0.8, shape=21, alpha=0.8) +
   ggtitle(paste0(hicds, " - ", exprds), subtitle = paste0(subTit))+
   scale_x_discrete(name=my_xlab)+
   scale_y_continuous(name=paste0(my_ylab),
@@ -311,9 +312,8 @@ save(withRank_toplot_dt2, file="withRank_toplot_dt2.Rdata", version=2)
 
 p_var_boxplot <- ggplot(withRank_toplot_dt2, aes(x = symbol_lab, y = value_log10, fill = cond)) +
   
-  geom_point(aes(color=cond_sh, shape=cond), position=position_jitterdodge(), stroke=0.8, size=1,alpha=0.8) +
-  
   geom_boxplot(notch = TRUE, outlier.shape=NA)+
+  geom_point(aes(color=cond_sh, shape=cond), position=position_jitterdodge(), stroke=0.8, size=1,alpha=0.8) +
   ggtitle(paste0(hicds, " - ", exprds), subtitle = paste0(subTit))+
   
   scale_x_discrete(name=my_xlab)+
