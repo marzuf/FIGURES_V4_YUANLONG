@@ -18,7 +18,7 @@ log10_offset <- 0.01
 
 # Rscript look_TAD_expression_withRank_withMutStatus_facet.R <hicds> <exprds> <gene_symbol>
 # Rscript look_TAD_expression_withRank_withMutStatus_facet.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad chr11_TAD390
-# Rscript look_TAD_expression_withRank_withMutStatus_facet.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad chr11_TAD390
+# Rscript look_TAD_expression_withRank_withMutStatus_facet.R ENCSR489OCU_NCI-H460_40kb TCGAluad_norm_luad chr10_TAD268
 # Rscript look_TAD_expression_withRank_withMutStatus_facet.R ENCSR489OCU_NCI-H460_40kb TCGAlusc_norm_lusc chr11_TAD390
 # Rscript look_TAD_expression_withRank_withMutStatus_facet.R ENCSR489OCU_NCI-H460_40kb TCGAlusc_norm_lusc chr10_TAD268
 # Rscript look_TAD_expression_withRank_withMutStatus_facet.R ENCSR489OCU_NCI-H460_40kb TCGAluad_mutKRAS_mutEGFR chr10_TAD16

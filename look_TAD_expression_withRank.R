@@ -171,11 +171,11 @@ subTit <- paste0(tad_to_plot, " (rank: ", tad_plot_rank, ")")
 p_var_boxplot <-  ggplot(withRank_toplot_dt2, aes(x = symbol_lab, y = value_log10, fill = cond)) + 
   # geom_boxplot(notch = TRUE, outlier.shape=NA)+
   # geom_jitter(aes(colour = cond), position=position_jitterdodge())+
-  
+  geom_boxplot(notch = TRUE, outlier.shape=NA)+
   geom_point(aes(color=cond), position=position_jitterdodge(),  alpha=0.5) +
   
   
-  geom_boxplot(notch = TRUE, outlier.shape=NA)+
+ 
   ggtitle(paste0(hicds, " - ", exprds), subtitle = paste0(subTit))+
   scale_x_discrete(name=my_xlab)+
   scale_y_continuous(name=paste0(my_ylab),
