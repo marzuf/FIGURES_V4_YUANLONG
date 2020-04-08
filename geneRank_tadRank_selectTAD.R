@@ -2,7 +2,7 @@ hicds <- "ENCSR489OCU_NCI-H460_40kb"
 exprds <- "TCGAluad_norm_luad"
 tad_to_show <- "chr11_TAD390"
 
-plotType <- "png"
+plotType <- "svg"
 
 source("../FIGURES_V2_YUANLONG/settings.R")
 require(ggsci)

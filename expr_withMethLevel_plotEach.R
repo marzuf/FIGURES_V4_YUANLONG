@@ -117,7 +117,9 @@ for(i in 1:nrow(met_dt)) {
   agg_met_dt$entrezID <- symb2entrez[paste0(agg_met_dt$FantomPromAnnot_Gene_Name)]
   stopifnot(agg_met_dt$entrezID %in% gene_list)
   
-  count_file <- file.path(pipFolder, hicds, exprds, "1_runGeneDE", "DE_rnaseqDT.Rdata")
+#  count_file <- file.path(pipFolder, hicds, exprds, "1_runGeneDE", "DE_rnaseqDT.Rdata")
+count_file <- file.path(pipFolder, hicds, exprds, "0_prepGeneData", "rna_fpkmDT.Rdata")  # corrected here 18.03.2020
+
   stopifnot(file.exists(count_file))
   fpkm_dt <- get(load(count_file))
   
@@ -179,7 +181,7 @@ for(i in 1:nrow(met_dt)) {
       x = myx,
       y = myy,
       main = paste0("Expression and methylation - ", curr_probe),
-      xlab = paste0(plot_symbol, " - RNA-seq FPKM [log10]"),
+      xlab = paste0(plot_symbol, " - RNA-seq TPM [log10]"),# my_ylab <- "RNA-seq TPM [log10]"
       # ylab = paste0("\u0392 value methylation (", aggregFunc, ")"),
       
       # ylab = expression(paste(beta,  " value methylation (", 

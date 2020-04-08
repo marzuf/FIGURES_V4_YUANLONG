@@ -103,6 +103,11 @@ stopifnot(nrow(ex_DT_signif) > 0)
 # if <= 0.01 => log10 <= 2 => cex = 0.7
 ex_DT$adjPvalComb_log10 <- -log10(ex_DT$adjPvalComb)
 
+outFile <- file.path(outFolder, paste0(ex_hicds, "_", ex_exprds, "_dt.Rdata"))
+save(ex_DT, file=outFile, version=2)
+
+
+
 notSignifSize <- 0.6
 new_min <-0.7
 new_max <- 3
